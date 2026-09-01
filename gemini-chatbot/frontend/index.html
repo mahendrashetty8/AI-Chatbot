@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Futuristic 3D AI Chatbot powered by Google Gemini API with Chat History, Voice Typing, and Animated 3D Robot Mascot">
+  <title>GemiBot 3D - Futuristic AI Assistant</title>
+  
+  <!-- Favicon / 3D Robot SVG Icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23121726'/><rect x='25' y='30' width='50' height='38' rx='12' fill='%234285f4'/><circle cx='38' cy='48' r='6' fill='%2300f2fe'/><circle cx='62' cy='48' r='6' fill='%2300f2fe'/><circle cx='50' cy='18' r='5' fill='%239b72cf'/><line x1='50' y1='18' x2='50' y2='30' stroke='%239b72cf' stroke-width='4'/></svg>">
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Meta theme & early theme script to avoid FOUC -->
+  <meta name="color-scheme" content="dark light">
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('gemini_chatbot_theme') || 
+        (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
+</head>
+<body>
+  <!-- 3D Interactive Particle Matrix Canvas -->
+  <canvas id="bgParticleCanvas" class="bg-particle-canvas" aria-hidden="true"></canvas>
+
+  <!-- Ambient background glow orbs -->
+  <div class="ambient-glow glow-1" aria-hidden="true"></div>
+  <div class="ambient-glow glow-2" aria-hidden="true"></div>
+  <div class="ambient-glow glow-3" aria-hidden="true"></div>
+
+  <!-- Sidebar Backdrop (for mobile overlay) -->
+  <div class="sidebar-backdrop hidden" id="sidebarBackdrop"></div>
+
+  <div class="app-layout">
+    
+    <!-- Pinned 3D Chat History Sidebar (Visible on screen by default) -->
+    <aside class="history-sidebar" id="historySidebar" aria-label="Conversation History Sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sidebar-brand-icon">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="sidebar-title">Previous Chats</span>
+        </div>
+        <button type="button" id="closeSidebarBtn" class="icon-button btn-3d sidebar-close-btn" title="Collapse Sidebar" aria-label="Collapse sidebar">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <!-- New Chat Button -->
+      <div class="sidebar-action-area">
+        <button type="button" id="newChatBtn" class="btn btn-primary btn-3d btn-new-chat" title="Start a fresh chat conversation">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>+ New Chat</span>
+        </button>
+      </div>
+
+      <!-- Search History Bar -->
+      <div class="sidebar-search-area">
+        <div class="sidebar-search-box">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="historySearchInput" placeholder="Search previous chats..." aria-label="Search conversation history" />
+        </div>
+      </div>
+
+      <!-- Saved Chat Sessions List Container -->
+      <div class="sidebar-sessions-list" id="historySessionsList" role="list">
+        <!-- Dynamically rendered past chats -->
+      </div>
+
+      <!-- Sidebar Footer Area -->
+      <div class="sidebar-footer">
+        <button type="button" id="clearAllHistoryBtn" class="btn btn-secondary btn-3d btn-clear-all" title="Clear all saved history">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <span>Clear All History</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Chat Application Container -->
+    <div class="app-container" id="appContainer">
+      
+      <!-- Top Header with 3D Depth & Active Chat Title -->
+      <header class="chat-header">
+        <div class="header-left">
+          <!-- Toggle History Sidebar Button -->
+          <button id="toggleHistoryBtn" class="icon-button btn-3d history-toggle-btn" title="Show / Hide Previous Chats Sidebar" aria-label="Toggle history sidebar">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+            <span class="btn-text">History</span>
+          </button>
+
+          <div class="header-brand">
+            <!-- 3D Mini Robot Avatar in Header -->
+            <div class="robot-mini-header" id="robotMiniHeader" aria-label="GemiBot 3D Avatar" role="img" title="GemiBot Online">
+              <svg class="robot-svg-mini" viewBox="0 0 100 100" width="38" height="38">
+                <ellipse cx="50" cy="50" rx="46" ry="14" fill="none" stroke="url(#gemini-grad-h)" stroke-width="2" class="mini-orbit-ring"/>
+                <line x1="50" y1="18" x2="50" y2="34" stroke="url(#gemini-grad-h)" stroke-width="4" stroke-linecap="round"/>
+                <circle cx="50" cy="14" r="6" fill="#00f2fe" class="mini-antenna-light"/>
+                <rect x="22" y="32" width="56" height="42" rx="14" fill="url(#bot-body-grad)" stroke="url(#gemini-grad-h)" stroke-width="2.5"/>
+                <rect x="28" y="38" width="44" height="22" rx="8" fill="#090d16" stroke="#1c2538" stroke-width="1.5"/>
+                <circle cx="40" cy="49" r="4.5" fill="#00f2fe" class="mini-eye-left" id="miniEyeLeft"/>
+                <circle cx="60" cy="49" r="4.5" fill="#00f2fe" class="mini-eye-right" id="miniEyeRight"/>
+                <line x1="42" y1="66" x2="58" y2="66" stroke="#4285f4" stroke-width="2.5" stroke-linecap="round"/>
+                <defs>
+                  <linearGradient id="gemini-grad-h" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#4285F4"/>
+                    <stop offset="50%" stop-color="#9B72CF"/>
+                    <stop offset="100%" stop-color="#00f2fe"/>
+                  </linearGradient>
+                  <linearGradient id="bot-body-grad" x1="20" y1="30" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#2a3348"/>
+                    <stop offset="100%" stop-color="#121724"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            <div class="brand-text">
+              <div class="brand-title-row">
+                <h1 class="brand-title">GemiBot <span class="brand-3d-tag">3D</span></h1>
+                <span class="bot-badge">Gemini 3.6 Flash</span>
+              </div>
+              <div class="status-indicator-container">
+                <span class="status-dot online" id="statusDot" aria-hidden="true"></span>
+                <span class="status-text" id="statusText">Checking system...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <!-- Active Conversation Title Pill -->
+          <div class="active-chat-pill" id="activeChatPill" title="Current Conversation">
+            <span class="active-chat-icon">💬</span>
+            <span class="active-chat-title" id="activeChatTitle">New Chat</span>
+          </div>
+
+          <!-- User Profile Name Badge -->
+          <button id="userProfileBtn" class="user-profile-badge btn-3d" title="Click to change your name" aria-label="Your Profile Name">
+            <div class="user-avatar-mini" id="headerUserAvatar">U</div>
+            <span class="user-name-text" id="headerUserName">Guest</span>
+            <svg class="edit-pencil-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+
+          <!-- Sound FX Toggle -->
+          <button id="soundToggleBtn" class="icon-button btn-3d" title="Toggle Sound Effects" aria-label="Toggle sound effects">
+            <svg class="sound-on-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            </svg>
+            <svg class="sound-off-icon hidden" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+              <line x1="23" y1="9" x2="17" y2="15"></line>
+              <line x1="17" y1="9" x2="23" y2="15"></line>
+            </svg>
+          </button>
+
+          <!-- Export Chat -->
+          <button id="exportChatBtn" class="icon-button btn-3d" title="Export Conversation as Markdown" aria-label="Export conversation">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span class="btn-text">Export</span>
+          </button>
+
+          <!-- Theme Toggle Button -->
+          <button id="themeToggleBtn" class="icon-button btn-3d" title="Toggle Light / Dark Theme" aria-label="Toggle theme">
+            <svg class="theme-icon sun-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg class="theme-icon moon-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+
+          <!-- Clear Chat Button -->
+          <button id="clearChatBtn" class="icon-button danger btn-3d" title="Clear Current Conversation" aria-label="Clear chat conversation">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+            <span class="btn-text">Clear</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Chat Messages Container with 3D Depth Layering -->
+      <main class="chat-main" id="chatMain" role="log" aria-live="polite" aria-label="Conversation View">
+        
+        <!-- Interactive 3D Robot Hero Welcome Screen -->
+        <div class="welcome-screen" id="welcomeScreen">
+          
+          <!-- 3D Parallax Mascot Card -->
+          <div class="robot-hero-3d-card" id="robotHeroCard" data-tilt>
+            <div class="card-3d-shine" id="cardShine"></div>
+            
+            <div class="robot-speech-bubble" id="robotSpeech">
+              <span id="robotSpeechText">👋 Hi! I'm GemiBot 3D. Move your mouse around me or pick a chat from the history!</span>
+            </div>
+
+            <div class="robot-hero-wrapper" id="robotHero">
+              <svg class="robot-svg-large" id="robotSvgLarge" viewBox="0 0 220 240" width="180" height="196">
+                
+                <!-- 3D Orbiting Gyroscope Rings -->
+                <g class="robot-orbit-system">
+                  <ellipse cx="110" cy="120" rx="98" ry="28" fill="none" stroke="url(#hero-gemini-grad)" stroke-width="2.5" stroke-dasharray="8 6" class="orbit-ring-1"/>
+                  <ellipse cx="110" cy="120" rx="78" ry="85" fill="none" stroke="url(#hero-gemini-grad)" stroke-width="1.8" opacity="0.6" class="orbit-ring-2"/>
+                  <circle cx="110" cy="35" r="4" fill="#00f2fe" class="orbit-satellite"/>
+                </g>
+
+                <!-- Antenna Plasma Assembly -->
+                <g class="robot-antenna-group">
+                  <line x1="110" y1="42" x2="110" y2="76" stroke="url(#hero-gemini-grad)" stroke-width="5" stroke-linecap="round"/>
+                  <circle cx="110" cy="34" r="14" fill="#00f2fe" class="antenna-orb"/>
+                  <circle cx="110" cy="34" r="7" fill="#ffffff" class="antenna-core"/>
+                  <ellipse cx="110" cy="56" rx="10" ry="4" fill="none" stroke="#00f2fe" stroke-width="2"/>
+                </g>
+
+                <!-- Floating Robot Body & 3D Arms -->
+                <g class="robot-floating-body" id="robotBody">
+                  <path d="M52 150 C32 164 34 192 54 186" fill="none" stroke="url(#hero-gemini-grad)" stroke-width="9" stroke-linecap="round" class="robot-arm-left"/>
+                  <path d="M168 150 C188 164 186 192 166 186" fill="none" stroke="url(#hero-gemini-grad)" stroke-width="9" stroke-linecap="round" class="robot-arm-right" id="robotArmRight"/>
+                  <rect x="64" y="140" width="92" height="60" rx="22" fill="url(#hero-body-grad)" stroke="url(#hero-gemini-grad)" stroke-width="3" filter="drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4))"/>
+                  <circle cx="110" cy="170" r="16" fill="#090d16" stroke="#00f2fe" stroke-width="2.5"/>
+                  <polygon points="110,158 120,176 100,176" fill="url(#hero-gemini-grad)" class="torso-core-pulse"/>
+                  <circle cx="110" cy="170" r="4" fill="#ffffff"/>
+                </g>
+
+                <!-- 3D Robot Head Assembly (Mouse Tracking) -->
+                <g class="robot-head-group" id="robotHeadGroup">
+                  <rect x="42" y="94" width="12" height="28" rx="6" fill="#364057" stroke="#4285f4" stroke-width="1.5"/>
+                  <rect x="166" y="94" width="12" height="28" rx="6" fill="#364057" stroke="#4285f4" stroke-width="1.5"/>
+                  <rect x="52" y="72" width="116" height="80" rx="28" fill="url(#hero-body-grad)" stroke="url(#hero-gemini-grad)" stroke-width="3.5" filter="drop-shadow(0 12px 24px rgba(66, 133, 244, 0.35))"/>
+                  <rect x="64" y="85" width="92" height="46" rx="16" fill="#070a12" stroke="#1e273c" stroke-width="2"/>
+
+                  <g class="robot-eyes-container" id="robotEyesContainer">
+                    <ellipse cx="88" cy="108" rx="12" ry="13" fill="rgba(0, 242, 254, 0.2)"/>
+                    <ellipse cx="88" cy="108" rx="9" ry="10" fill="#00f2fe" class="eye-pupil eye-left" id="eyePupilLeft"/>
+                    <circle cx="86" cy="104" r="3.5" fill="#ffffff" class="eye-highlight" id="eyeHighlightLeft"/>
+
+                    <ellipse cx="132" cy="108" rx="12" ry="13" fill="rgba(0, 242, 254, 0.2)"/>
+                    <ellipse cx="132" cy="108" rx="9" ry="10" fill="#00f2fe" class="eye-pupil eye-right" id="eyePupilRight"/>
+                    <circle cx="130" cy="104" r="3.5" fill="#ffffff" class="eye-highlight" id="eyeHighlightRight"/>
+                  </g>
+
+                  <g class="robot-mouth-wave">
+                    <rect x="94" y="138" width="5" height="7" rx="2.5" fill="#4285f4" class="mouth-bar bar-1"/>
+                    <rect x="103" y="136" width="5" height="11" rx="2.5" fill="#9b72cf" class="mouth-bar bar-2"/>
+                    <rect x="112" y="136" width="5" height="11" rx="2.5" fill="#9b72cf" class="mouth-bar bar-3"/>
+                    <rect x="121" y="138" width="5" height="7" rx="2.5" fill="#00f2fe" class="mouth-bar bar-4"/>
+                  </g>
+                </g>
+
+                <defs>
+                  <linearGradient id="hero-gemini-grad" x1="0" y1="0" x2="220" y2="220" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#4285F4"/>
+                    <stop offset="50%" stop-color="#9B72CF"/>
+                    <stop offset="100%" stop-color="#00f2fe"/>
+                  </linearGradient>
+                  <linearGradient id="hero-body-grad" x1="40" y1="60" x2="180" y2="200" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#28324a"/>
+                    <stop offset="60%" stop-color="#161c2c"/>
+                    <stop offset="100%" stop-color="#0e121d"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
+
+          <h2 class="welcome-title">Welcome <span class="gemini-text-gradient" id="welcomeUserGreeting">Friend</span></h2>
+          <p class="welcome-subtitle">Select any previous chat on the left to review your conversation history, or start a new prompt below.</p>
+
+          <!-- Quick Access Previous Chats on Welcome Screen -->
+          <div class="recent-chats-section hidden" id="recentChatsHero">
+            <h3 class="recent-chats-heading">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+              <span>Recent Previous Chats</span>
+            </h3>
+            <div class="recent-chats-grid" id="recentChatsGrid"></div>
+          </div>
+          
+          <!-- Category Tab Filters with 3D Pill Design -->
+          <div class="category-tabs" role="tablist" aria-label="Prompt Categories">
+            <button type="button" class="tab-btn active btn-3d-tab" data-category="code">💻 Coding</button>
+            <button type="button" class="tab-btn btn-3d-tab" data-category="creative">✍️ Writing</button>
+            <button type="button" class="tab-btn btn-3d-tab" data-category="learn">💡 Brainstorm</button>
+            <button type="button" class="tab-btn btn-3d-tab" data-category="science">🔬 Science & Tech</button>
+          </div>
+
+          <!-- 3D Suggestion Chips Container -->
+          <div class="suggestion-chips" id="suggestionChipsContainer" aria-label="Conversation starter suggestions"></div>
+        </div>
+
+        <!-- Messages Stream -->
+        <div class="messages-list" id="messagesList"></div>
+
+        <!-- Enhanced 3D Robot Typing Indicator -->
+        <div class="typing-indicator-wrapper hidden" id="typingIndicator" aria-hidden="true">
+          <div class="message-avatar bot-avatar-animated avatar-3d">
+            <svg viewBox="0 0 100 100" width="30" height="30">
+              <ellipse cx="50" cy="50" rx="46" ry="14" fill="none" stroke="#00f2fe" stroke-width="2" class="mini-orbit-ring"/>
+              <circle cx="50" cy="18" r="6" fill="#00f2fe" class="mini-antenna-light"/>
+              <line x1="50" y1="20" x2="50" y2="34" stroke="#4285f4" stroke-width="4"/>
+              <rect x="22" y="32" width="56" height="42" rx="14" fill="#1b202e" stroke="#4285f4" stroke-width="2"/>
+              <rect x="28" y="38" width="44" height="22" rx="8" fill="#070a12"/>
+              <circle cx="40" cy="49" r="4.5" fill="#00f2fe" class="thinking-eye-1"/>
+              <circle cx="60" cy="49" r="4.5" fill="#00f2fe" class="thinking-eye-2"/>
+            </svg>
+          </div>
+          <div class="typing-bubble bubble-3d">
+            <div class="dot-pulse">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+            <span class="typing-label">GemiBot 3D is computing your answer...</span>
+          </div>
+        </div>
+
+        <!-- Floating 3D Scroll to bottom button -->
+        <button id="scrollToBottomBtn" class="scroll-bottom-btn btn-3d hidden" aria-label="Scroll to newest message" title="Scroll to bottom">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+      </main>
+
+      <!-- Chat Input Section with 3D Elevated Glass Base -->
+      <footer class="chat-input-area">
+        <form id="chatForm" class="chat-form" novalidate>
+          <div class="input-wrapper input-wrapper-3d">
+            
+            <!-- Speech to text Mic button -->
+            <button type="button" id="voiceInputBtn" class="input-addon-btn btn-3d-icon" title="Voice Typing (Click to Speak)" aria-label="Voice input">
+              <svg class="mic-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <line x1="12" y1="19" x2="12" y2="23"></line>
+                <line x1="8" y1="23" x2="16" y2="23"></line>
+              </svg>
+              <span class="mic-recording-pulse hidden"></span>
+            </button>
+
+            <textarea
+              id="messageInput"
+              class="message-textarea"
+              placeholder="Ask GemiBot 3D anything... (Shift + Enter for new line)"
+              rows="1"
+              maxlength="4000"
+              aria-label="Type your message"
+              required
+            ></textarea>
+            
+            <div class="input-controls">
+              <span class="char-count" id="charCount" aria-hidden="true">0 / 4000</span>
+              <button 
+                type="submit" 
+                id="sendButton" 
+                class="send-btn btn-3d-send" 
+                aria-label="Send message" 
+                disabled
+                title="Send message (Enter)"
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="input-footer">
+            <span class="footer-hint">Press <strong>Enter ↵</strong> to send &bull; <strong>Shift + Enter</strong> for newline</span>
+          </div>
+        </form>
+      </footer>
+
+    </div>
+  </div>
+
+  <!-- 3D Interactive Name Request Onboarding Modal -->
+  <div class="modal-backdrop hidden" id="nameModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="nameModalTitle">
+    <div class="modal-card modal-3d name-modal-card">
+      <div class="name-modal-robot-badge">
+        <svg viewBox="0 0 100 100" width="56" height="56">
+          <circle cx="50" cy="18" r="6" fill="#00f2fe" class="mini-antenna-light"/>
+          <line x1="50" y1="20" x2="50" y2="34" stroke="#4285f4" stroke-width="4"/>
+          <rect x="22" y="32" width="56" height="42" rx="14" fill="#1b202e" stroke="#4285f4" stroke-width="2.5"/>
+          <rect x="28" y="38" width="44" height="22" rx="8" fill="#070a12"/>
+          <circle cx="40" cy="49" r="4.5" fill="#00f2fe"/>
+          <circle cx="60" cy="49" r="4.5" fill="#00f2fe"/>
+        </svg>
+      </div>
+
+      <h3 id="nameModalTitle" class="modal-title text-center">Hello Human! What is your name?</h3>
+      <p class="modal-description text-center">Let GemiBot personalize your chat experience and multi-turn memory.</p>
+      
+      <form id="nameForm" class="name-input-form" onsubmit="return false;">
+        <div class="name-field-wrapper">
+          <svg class="name-input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <input 
+            type="text" 
+            id="userNameInput" 
+            class="name-text-input" 
+            placeholder="Enter your name (e.g. Alex)" 
+            maxlength="30"
+            autocomplete="name"
+            required
+          />
+        </div>
+
+        <div class="modal-actions space-between">
+          <button type="button" class="btn btn-secondary btn-3d" id="skipNameBtn">Skip for now</button>
+          <button type="submit" class="btn btn-primary btn-3d btn-gradient" id="saveNameBtn">Save & Start 🚀</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3D Clear Chat Confirmation Modal -->
+  <div class="modal-backdrop hidden" id="clearModalBackdrop" role="dialog" aria-modal="true" aria-labelledby="clearModalTitle">
+    <div class="modal-card modal-3d">
+      <div class="modal-header">
+        <div class="modal-icon-robot">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+            <circle cx="12" cy="5" r="2"></circle>
+            <path d="M12 7v4"></path>
+            <line x1="8" y1="16" x2="8" y2="16"></line>
+            <line x1="16" y1="16" x2="16" y2="16"></line>
+          </svg>
+        </div>
+        <h3 id="clearModalTitle" class="modal-title">Clear conversation memory?</h3>
+      </div>
+      <p class="modal-description">This will reset GemiBot's active 3D multi-turn memory session and wipe the chat logs.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary btn-3d" id="cancelClearBtn">Cancel</button>
+        <button type="button" class="btn btn-danger btn-3d" id="confirmClearBtn">Clear Memory</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- Frontend JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
