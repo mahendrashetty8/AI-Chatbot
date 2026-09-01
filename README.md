@@ -38,15 +38,7 @@ gemini-chatbot/
    ```bash
    npm install
    ```
-3. Open `.env` and configure your Google Gemini API key:
-   ```env
-   GEMINI_API_KEY=your_actual_gemini_api_key_here
-   GEMINI_MODEL=gemini-2.5-flash
-   PORT=5000
-   ```
-   *(Obtain a free API key at [Google AI Studio](https://aistudio.google.com/))*
-
-4. Start the backend:
+3. Start the backend:
    ```bash
    npm start
    ```
