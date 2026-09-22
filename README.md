@@ -57,4 +57,3 @@ python -m http.server 3000
 
 Open `http://localhost:3000` (or the port shown) in your browser.
 
-For complete documentation on API endpoints, multi-turn chat memory, security considerations, and error handling, see [gemini-chatbot/README.md](file:///d:/Workshop/Chatbot/gemini-chatbot/README.md).
